@@ -45,6 +45,11 @@ def prepare_librimix(
                 "Libri3Mix" in datapath
             ), "Inconsistent number of speakers and datapath"
             create_libri3mix_csv(datapath, savepath, addnoise=librimix_addnoise)
+        elif n_spks == 4:
+            assert (
+                "Libri4Mix" in datapath
+            ), "Inconsistent number of speakers and datapath"
+            create_libri4mix_csv(datapath, savepath, addnoise=librimix_addnoise)
         else:
             raise ValueError("Unsupported Number of Speakers")
     else:
@@ -202,6 +207,102 @@ def create_libri3mix_csv(
                     "s3_wav": s3_path,
                     "s3_wav_format": "wav",
                     "s3_wav_opts": None,
+                    "noise_wav": noise_path,
+                    "noise_wav_format": "wav",
+                    "noise_wav_opts": None,
+                }
+                writer.writerow(row)
+
+
+def create_libri4mix_csv(
+    datapath,
+    savepath,
+    addnoise=False,
+    version="wav48k/min/",
+    set_types=["train-360", "test"],
+):
+    """
+    This functions creates the .csv file for the libri3mix dataset
+    """
+
+    for set_type in set_types:
+        if addnoise:
+            mix_path = os.path.join(datapath, version, set_type, "mix_both/")
+        else:
+            mix_path = os.path.join(datapath, version, set_type, "mix_clean/")
+
+        s1_path = os.path.join(datapath, version, set_type, "s1/")
+        s2_path = os.path.join(datapath, version, set_type, "s2/")
+        s3_path = os.path.join(datapath, version, set_type, "s3/")
+        s4_path = os.path.join(datapath, version, set_type, "s4/")
+        noise_path = os.path.join(datapath, version, set_type, "noise/")
+
+        files = os.listdir(mix_path)
+
+        mix_fl_paths = [mix_path + fl for fl in files]
+        s1_fl_paths = [s1_path + fl for fl in files]
+        s2_fl_paths = [s2_path + fl for fl in files]
+        s3_fl_paths = [s3_path + fl for fl in files]
+        s4_fl_paths = [s4_path + fl for fl in files]
+        noise_fl_paths = [noise_path + fl for fl in files]
+
+        csv_columns = [
+            "ID",
+            "duration",
+            "mix_wav",
+            "mix_wav_format",
+            "mix_wav_opts",
+            "s1_wav",
+            "s1_wav_format",
+            "s1_wav_opts",
+            "s2_wav",
+            "s2_wav_format",
+            "s2_wav_opts",
+            "s3_wav",
+            "s3_wav_format",
+            "s3_wav_opts",
+            "s4_wav",
+            "s4_wav_format",
+            "s4_wav_opts",
+            "noise_wav",
+            "noise_wav_format",
+            "noise_wav_opts",
+        ]
+
+        with open(savepath + "/libri4mix_" + set_type + ".csv", "w") as csvfile:
+            writer = csv.DictWriter(csvfile, fieldnames=csv_columns)
+            writer.writeheader()
+            for (
+                i,
+                (mix_path, s1_path, s2_path, s3_path, s4_path, noise_path),
+            ) in enumerate(
+                zip(
+                    mix_fl_paths,
+                    s1_fl_paths,
+                    s2_fl_paths,
+                    s3_fl_paths,
+                    s4_fl_paths,
+                    noise_fl_paths,
+                )
+            ):
+                row = {
+                    "ID": i,
+                    "duration": 1.0,
+                    "mix_wav": mix_path,
+                    "mix_wav_format": "wav",
+                    "mix_wav_opts": None,
+                    "s1_wav": s1_path,
+                    "s1_wav_format": "wav",
+                    "s1_wav_opts": None,
+                    "s2_wav": s2_path,
+                    "s2_wav_format": "wav",
+                    "s2_wav_opts": None,
+                    "s3_wav": s3_path,
+                    "s3_wav_format": "wav",
+                    "s3_wav_opts": None,
+                    "s4_wav": s4_path,
+                    "s4_wav_format": "wav",
+                    "s4_wav_opts": None,
                     "noise_wav": noise_path,
                     "noise_wav_format": "wav",
                     "noise_wav_opts": None,

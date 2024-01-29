@@ -121,6 +121,10 @@ class Separation(sb.Brain):
 
         if self.hparams.num_spks == 3:
             targets.append(batch.s3_sig)
+        
+        if self.hparams.num_spks == 4:
+            targets.append(batch.s3_sig)
+            targets.append(batch.s4_sig)
 
         if self.auto_mix_prec:
             with autocast():
@@ -199,6 +203,10 @@ class Separation(sb.Brain):
         targets = [batch.s1_sig, batch.s2_sig]
         if self.hparams.num_spks == 3:
             targets.append(batch.s3_sig)
+
+        if self.hparams.num_spks == 4:
+            targets.append(batch.s3_sig)
+            targets.append(batch.s4_sig)
 
         with torch.no_grad():
             predictions, targets = self.compute_forward(mixture, targets, stage)
@@ -360,6 +368,9 @@ class Separation(sb.Brain):
                     targets = [batch.s1_sig, batch.s2_sig]
                     if self.hparams.num_spks == 3:
                         targets.append(batch.s3_sig)
+                    if self.hparams.num_spks == 4:
+                        targets.append(batch.s3_sig)
+                        targets.append(batch.s4_sig)
 
                     with torch.no_grad():
                         predictions, targets = self.compute_forward(
@@ -509,6 +520,21 @@ def dataio_prep(hparams):
         def audio_pipeline_s3(s3_wav):
             s3_sig = sb.dataio.dataio.read_audio(s3_wav)
             return s3_sig
+        
+    if hparams["num_spks"] == 4:
+
+        @sb.utils.data_pipeline.takes("s3_wav")
+        @sb.utils.data_pipeline.provides("s3_sig")
+        def audio_pipeline_s3(s3_wav):
+            s3_sig = sb.dataio.dataio.read_audio(s3_wav)
+            return s3_sig
+        
+        @sb.utils.data_pipeline.takes("s4_wav")
+        @sb.utils.data_pipeline.provides("s4_sig")
+        def audio_pipeline_s4(s4_wav):
+            s4_sig = sb.dataio.dataio.read_audio(s4_wav)
+            return s4_sig
+        
 
     if hparams["use_wham_noise"]:
 
@@ -523,6 +549,9 @@ def dataio_prep(hparams):
     sb.dataio.dataset.add_dynamic_item(datasets, audio_pipeline_s2)
     if hparams["num_spks"] == 3:
         sb.dataio.dataset.add_dynamic_item(datasets, audio_pipeline_s3)
+    if hparams["num_spks"] == 4:
+        sb.dataio.dataset.add_dynamic_item(datasets, audio_pipeline_s3)
+        sb.dataio.dataset.add_dynamic_item(datasets, audio_pipeline_s4)
 
     if hparams["use_wham_noise"]:
         print("Using the WHAM! noise in the data pipeline")
@@ -537,13 +566,22 @@ def dataio_prep(hparams):
             datasets,
             ["id", "mix_sig", "s1_sig", "s2_sig", "s3_sig", "noise_sig"],
         )
+    elif (hparams["num_spks"] == 4) and hparams["use_wham_noise"]:
+        sb.dataio.dataset.set_output_keys(
+            datasets,
+            ["id", "mix_sig", "s1_sig", "s2_sig", "s3_sig", "s4_sig", "noise_sig"],
+        )
     elif (hparams["num_spks"] == 2) and not hparams["use_wham_noise"]:
         sb.dataio.dataset.set_output_keys(
             datasets, ["id", "mix_sig", "s1_sig", "s2_sig"]
         )
-    else:
+    elif (hparams["num_spks"] == 3) and not hparams["use_wham_noise"]:
         sb.dataio.dataset.set_output_keys(
             datasets, ["id", "mix_sig", "s1_sig", "s2_sig", "s3_sig"]
+        )
+    else:
+        sb.dataio.dataset.set_output_keys(
+            datasets, ["id", "mix_sig", "s1_sig", "s2_sig", "s3_sig", "s4_sig"]
         )
 
     return train_data, valid_data, test_data

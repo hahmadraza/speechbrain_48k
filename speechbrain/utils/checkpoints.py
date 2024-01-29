@@ -147,9 +147,28 @@ def torch_parameter_transfer(obj, path, device):
     None
         The object is modified in place.
     """
-    incompatible_keys = obj.load_state_dict(
-        torch.load(path, map_location=device), strict=False
-    )
+
+    # Load the state dictionary
+    saved_state = torch.load(path, map_location=device)
+
+    # Get the state dictionary keys
+    model_dict = obj.state_dict()
+
+    # Filter out keys that exist in both state dicts and have the same size
+    new_state_dict = {k: v for k, v in saved_state.items() if k in model_dict and v.size() == model_dict[k].size()}
+
+    size_mismatch = {k for k in saved_state.keys() if k not in new_state_dict.keys()}
+    if  len(size_mismatch)!=0:
+        print("Failed to load following keys due to size mismatch or key absence")
+        for key in size_mismatch:
+            print(key)
+    # Load the filtered state dictionary
+    model_dict.update(new_state_dict)
+    incompatible_keys = obj.load_state_dict(model_dict, strict=False)
+
+    # incompatible_keys = obj.load_state_dict(
+    #     torch.load(path, map_location=device), strict=False
+    # )
     for missing_key in incompatible_keys.missing_keys:
         logger.warning(
             f"During parameter transfer to {obj} loading from "
